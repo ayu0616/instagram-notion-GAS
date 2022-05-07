@@ -22,7 +22,9 @@ type NotionDatabaseItemRelation = { relation: { id: string }[] };
 
 type NotionDatabaseItemRichText = { "rich_text": notionDatabaseItemText };
 
-type NotionDatabaseItemMedia = { files: { file: { url: string } }[] };
+type NotionDatabaseItemMedia = {
+	files: { name: string; file: { url: string } }[];
+};
 
 type NotionDatabaseItemProperties = {
 	観光スポット: NotionDatabaseItemTitle;
@@ -55,6 +57,16 @@ type NotionUpdateProperties = {
 };
 
 type InstagramItemContainer = { id: string };
+
+const sleep = (ms: number) => {
+	const d1 = new Date().getTime();
+	while (true) {
+		const d2 = new Date().getTime();
+		if ((d2 - d1) > ms) {
+			break;
+		}
+	}
+};
 
 const queryCheckedNotionData = (): NotionDatabaseItem[] => {
 	const url =
@@ -129,11 +141,23 @@ const createInstagramCaption = (notionData: NotionDatabaseItem) => {
 			}
 		})
 		.join("\n\n");
-	const caption = `\n観光スポット：${spotHashTag}\n訪問日：${visitedDateJp}\n\n${contentText}`.replace(/\n\n\n+/, "\n\n");
+	const caption = `\n観光スポット：${spotHashTag}\n訪問日：${visitedDateJp}\n\n${contentText}`.replace(
+		/\n\n\n+/,
+		"\n\n",
+	);
 	return caption;
 };
 
 const updateInstagram = (notionData: NotionDatabaseItem) => {};
+
+type InstagramItemPayload = {
+	access_token: string;
+	is_carousel_item: string;
+	image_url?: string;
+	caption?: string;
+	media_type?: "VIDEO";
+	video_url?: string;
+};
 
 const postInstagram = (notionData: NotionDatabaseItem) => {
 	const notionProperties = notionData.properties;
@@ -141,19 +165,32 @@ const postInstagram = (notionData: NotionDatabaseItem) => {
 	const isCarousel = imageUrls.length >= 2;
 	// 各写真のIDを発行
 	const instagramItemIds = imageUrls.map(
-		(url) => {
-			const headers = {
+		(url, index) => {
+			const isVideo = notionProperties.写真.files[index].name.slice(-3) === "mp4";
+			const headers: InstagramItemPayload = {
 				is_carousel_item: (isCarousel).toString(),
-				image_url: url,
 				access_token: INSTAGRAM_TOKEN,
-				caption: createInstagramCaption(notionData),
 			};
+			// カルーセルじゃなかったら本文を追加
+			if (!isCarousel) {
+				headers.caption = createInstagramCaption(notionData);
+			}
+			// 動画か画像かで場合分け
+			if (isVideo) {
+				headers.media_type = "VIDEO";
+				headers.video_url = url;
+			} else {
+				headers.image_url = url;
+			}
 			const options: GoogleAppsScript.URL_Fetch.URLFetchRequestOptions = {
 				method: "post",
 				payload: headers,
 			};
 			const res = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, options);
 			const resJson: InstagramItemContainer = JSON.parse(res.getContentText());
+			if (isVideo) {
+				sleep(90 * 1000);
+			}
 			return resJson.id;
 		},
 	);

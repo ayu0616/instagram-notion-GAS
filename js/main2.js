@@ -7,6 +7,15 @@ const NOTION_HEADERS = {
 const INSTAGRAM_API_VERSION = "v13.0";
 const INSTAGRAM_MEDIA_URL = `https://graph.facebook.com/${INSTAGRAM_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media`;
 const INSTAGRAM_MEDIA_PUBLISH_URL = `https://graph.facebook.com/${INSTAGRAM_API_VERSION}/${INSTAGRAM_BUSINESS_ACCOUNT_ID}/media_publish`;
+const sleep = (ms) => {
+    const d1 = new Date().getTime();
+    while (true) {
+        const d2 = new Date().getTime();
+        if ((d2 - d1) > ms) {
+            break;
+        }
+    }
+};
 const queryCheckedNotionData = () => {
     const url = "https://api.notion.com/v1/databases/" + NOTION_DATABASE_ID + "/query";
     const filter = {
@@ -81,19 +90,33 @@ const postInstagram = (notionData) => {
     const imageUrls = notionProperties.写真.files.map((value) => value.file.url);
     const isCarousel = imageUrls.length >= 2;
     // 各写真のIDを発行
-    const instagramItemIds = imageUrls.map((url) => {
+    const instagramItemIds = imageUrls.map((url, index) => {
+        const isVideo = notionProperties.写真.files[index].name.slice(-3) === "mp4";
         const headers = {
             is_carousel_item: (isCarousel).toString(),
-            image_url: url,
             access_token: INSTAGRAM_TOKEN,
-            caption: createInstagramCaption(notionData),
         };
+        // カルーセルじゃなかったら本文を追加
+        if (!isCarousel) {
+            headers.caption = createInstagramCaption(notionData);
+        }
+        // 動画か画像かで場合分け
+        if (isVideo) {
+            headers.media_type = "VIDEO";
+            headers.video_url = url;
+        }
+        else {
+            headers.image_url = url;
+        }
         const options = {
             method: "post",
             payload: headers,
         };
         const res = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, options);
         const resJson = JSON.parse(res.getContentText());
+        if (isVideo) {
+            sleep(90 * 1000);
+        }
         return resJson.id;
     });
     // 写真が1枚か複数枚かで場合分け
