@@ -173,7 +173,7 @@ const postInstagram = (notionData) => {
 };
 const syncInstagram = () => {
     const notionDatas = queryCheckedNotionData();
-    notionDatas.forEach((notionData) => {
+    notionDatas.reverse().forEach((notionData) => {
         // 投稿が存在するかどうかで場合分け
         if (notionData.properties.Instagramの投稿ID.rich_text[0]) {
             // updateInstagram(notionData);
