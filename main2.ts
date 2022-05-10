@@ -188,9 +188,6 @@ const postInstagram = (notionData: NotionDatabaseItem) => {
 			};
 			const res = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, options);
 			const resJson: InstagramItemContainer = JSON.parse(res.getContentText());
-			if (isVideo) {
-				sleep(90 * 1000);
-			}
 			return resJson.id;
 		},
 	);
@@ -209,11 +206,22 @@ const postInstagram = (notionData: NotionDatabaseItem) => {
 			method: "post",
 			payload: secondHeaders,
 		};
-		const secondRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, secondOptions);
-		const secondResJson: InstagramItemContainer = JSON.parse(
-			secondRes.getContentText(),
-		);
-		const carouselId = secondResJson.id;
+		let carouselId = "";
+		while (true) {
+			try {
+				const secondRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, secondOptions);
+				const secondResJson: InstagramItemContainer = JSON.parse(
+					secondRes.getContentText(),
+				);
+				carouselId = secondResJson.id;
+			} catch {
+				console.log("errored sleeping");
+				sleep(30 * 1000);
+				continue;
+			} finally {
+				break;
+			}
+		}
 
 		// 投稿する
 		const thirdHeaders = {
@@ -224,14 +232,24 @@ const postInstagram = (notionData: NotionDatabaseItem) => {
 			method: "post",
 			payload: thirdHeaders,
 		};
-		const thirdRes = UrlFetchApp.fetch(
-			INSTAGRAM_MEDIA_PUBLISH_URL,
-			thirdOptions,
-		);
-		const thirdResJson: InstagramItemContainer = JSON.parse(
-			thirdRes.getContentText(),
-		);
-		instagramPostId = thirdResJson.id;
+		while (true) {
+			try {
+				const thirdRes = UrlFetchApp.fetch(
+					INSTAGRAM_MEDIA_PUBLISH_URL,
+					thirdOptions,
+				);
+				const thirdResJson: InstagramItemContainer = JSON.parse(
+					thirdRes.getContentText(),
+				);
+				instagramPostId = thirdResJson.id;
+			} catch {
+				console.log("errored sleeping");
+				sleep(30 * 1000);
+				continue;
+			} finally {
+				break;
+			}
+		}
 	} else {
 		// 投稿する
 		const secondHeaders = {
@@ -243,14 +261,24 @@ const postInstagram = (notionData: NotionDatabaseItem) => {
 			method: "post",
 			payload: secondHeaders,
 		};
-		const secondRes = UrlFetchApp.fetch(
-			INSTAGRAM_MEDIA_PUBLISH_URL,
-			secondOptions,
-		);
-		const secondResJson: InstagramItemContainer = JSON.parse(
-			secondRes.getContentText(),
-		);
-		instagramPostId = secondResJson.id;
+		while (true) {
+			try {
+				const secondRes = UrlFetchApp.fetch(
+					INSTAGRAM_MEDIA_PUBLISH_URL,
+					secondOptions,
+				);
+				const secondResJson: InstagramItemContainer = JSON.parse(
+					secondRes.getContentText(),
+				);
+				instagramPostId = secondResJson.id;
+			} catch {
+				console.log("errored sleeping");
+				sleep(30 * 1000);
+				continue;
+			} finally {
+				break;
+			}
+		}
 	}
 	const props: NotionUpdateProperties = {
 		"properties": {
@@ -262,17 +290,19 @@ const postInstagram = (notionData: NotionDatabaseItem) => {
 
 const syncInstagram = () => {
 	const notionDatas = queryCheckedNotionData();
-	notionDatas.reverse().forEach(
-		(notionData) => {
-			// 投稿が存在するかどうかで場合分け
-			if (notionData.properties.Instagramの投稿ID.rich_text[0]) {
-				// updateInstagram(notionData);
-			} else {
-				postInstagram(notionData);
-			}
-			removeNotionCheck(notionData.id);
-		},
-	);
+	notionDatas
+		.reverse()
+		.forEach(
+			(notionData) => {
+				// 投稿が存在するかどうかで場合分け
+				if (notionData.properties.Instagramの投稿ID.rich_text[0].text.content) {
+					// updateInstagram(notionData);
+				} else {
+					postInstagram(notionData);
+				}
+				removeNotionCheck(notionData.id);
+			},
+		);
 };
 
 const test = () => {

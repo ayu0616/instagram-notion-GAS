@@ -114,9 +114,6 @@ const postInstagram = (notionData) => {
         };
         const res = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, options);
         const resJson = JSON.parse(res.getContentText());
-        if (isVideo) {
-            sleep(90 * 1000);
-        }
         return resJson.id;
     });
     // 写真が1枚か複数枚かで場合分け
@@ -133,9 +130,22 @@ const postInstagram = (notionData) => {
             method: "post",
             payload: secondHeaders,
         };
-        const secondRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, secondOptions);
-        const secondResJson = JSON.parse(secondRes.getContentText());
-        const carouselId = secondResJson.id;
+        let carouselId = "";
+        while (true) {
+            try {
+                const secondRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_URL, secondOptions);
+                const secondResJson = JSON.parse(secondRes.getContentText());
+                carouselId = secondResJson.id;
+            }
+            catch {
+                console.log("errored sleeping");
+                sleep(30 * 1000);
+                continue;
+            }
+            finally {
+                break;
+            }
+        }
         // 投稿する
         const thirdHeaders = {
             creation_id: carouselId,
@@ -145,9 +155,21 @@ const postInstagram = (notionData) => {
             method: "post",
             payload: thirdHeaders,
         };
-        const thirdRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_PUBLISH_URL, thirdOptions);
-        const thirdResJson = JSON.parse(thirdRes.getContentText());
-        instagramPostId = thirdResJson.id;
+        while (true) {
+            try {
+                const thirdRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_PUBLISH_URL, thirdOptions);
+                const thirdResJson = JSON.parse(thirdRes.getContentText());
+                instagramPostId = thirdResJson.id;
+            }
+            catch {
+                console.log("errored sleeping");
+                sleep(30 * 1000);
+                continue;
+            }
+            finally {
+                break;
+            }
+        }
     }
     else {
         // 投稿する
@@ -160,9 +182,21 @@ const postInstagram = (notionData) => {
             method: "post",
             payload: secondHeaders,
         };
-        const secondRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_PUBLISH_URL, secondOptions);
-        const secondResJson = JSON.parse(secondRes.getContentText());
-        instagramPostId = secondResJson.id;
+        while (true) {
+            try {
+                const secondRes = UrlFetchApp.fetch(INSTAGRAM_MEDIA_PUBLISH_URL, secondOptions);
+                const secondResJson = JSON.parse(secondRes.getContentText());
+                instagramPostId = secondResJson.id;
+            }
+            catch {
+                console.log("errored sleeping");
+                sleep(30 * 1000);
+                continue;
+            }
+            finally {
+                break;
+            }
+        }
     }
     const props = {
         "properties": {
@@ -173,7 +207,9 @@ const postInstagram = (notionData) => {
 };
 const syncInstagram = () => {
     const notionDatas = queryCheckedNotionData();
-    notionDatas.reverse().forEach((notionData) => {
+    notionDatas
+        .reverse()
+        .forEach((notionData) => {
         // 投稿が存在するかどうかで場合分け
         if (notionData.properties.Instagramの投稿ID.rich_text[0]) {
             // updateInstagram(notionData);
