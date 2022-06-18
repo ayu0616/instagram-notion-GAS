@@ -295,7 +295,7 @@ const syncInstagram = () => {
 		.forEach(
 			(notionData) => {
 				// 投稿が存在するかどうかで場合分け
-				if (notionData.properties.Instagramの投稿ID.rich_text[0].text.content) {
+				if (notionData.properties.Instagramの投稿ID.rich_text.length) {
 					// updateInstagram(notionData);
 				} else {
 					postInstagram(notionData);
